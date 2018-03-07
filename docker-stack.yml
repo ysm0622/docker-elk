@@ -1,0 +1,83 @@
+version: '3.3'
+
+networks:
+  net:
+    driver: overlay
+
+configs:
+  elastic_config:
+    file: ./elasticsearch/config/elasticsearch.yml
+  logstash_config:
+    file: ./logstash/config/logstash.yml
+  logstash_pipeline:
+    file: ./logstash/pipeline/logstash.conf
+  kibana_config:
+    file: ./kibana/config/kibana.yml
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.2.1
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    configs:
+      - source: elastic_config
+        target: /usr/share/elasticsearch/config/elasticsearch.yml
+        uid: '1000'
+        gid: '0'
+    environment:
+      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+    networks:
+      - net
+    deploy:
+      mode: replicated
+      replicas: 1
+# See https://docs.docker.com/compose/compose-file/#resources
+# Uncomment the following to limit the memory used by the container
+#      resources:
+#        limits:
+#          memory: 256M
+#        reservations:
+#          memory: 64M
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash-oss:6.2.1
+    ports:
+      - "5000:5000"
+    configs:
+      - source: logstash_config
+        target: /usr/share/logstash/config/logstash.yml
+      - source: logstash_pipeline
+        target: /usr/share/logstash/pipeline/logstash.conf
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+    networks:
+      - net
+    deploy:
+      mode: replicated
+      replicas: 1
+# Uncomment the following to limit the memory used by the container
+#      resources:
+#        limits:
+#          memory: 256M
+#        reservations:
+#          memory: 64M
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana-oss:6.2.1
+    ports:
+      - "5601:5601"
+    configs:
+      - source: kibana_config
+        target: /usr/share/kibana/config/kibana.yml
+    networks:
+      - net
+    deploy:
+      mode: replicated
+      replicas: 1
+# Uncomment the following to limit the memory used by the container
+#      resources:
+#        limits:
+#          memory: 256M
+#        reservations:
+#          memory: 64M
